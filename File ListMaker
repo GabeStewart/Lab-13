@@ -1,0 +1,150 @@
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Scanner;
+
+public class Main {
+    private static ArrayList<String> list = new ArrayList<>();
+    private static boolean needsToBeSaved = false;
+    private static String currentListFileName = "";
+    private static Scanner in = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        char choice;
+        do {
+            displayMenu();
+            choice = SafeInput.getRegExString("[AaDdOoSsCcVvQq]", "Enter your choice: ").toUpperCase().charAt(0);
+            switch (choice) {
+                case 'A':
+                    addItem();
+                    break;
+                case 'D':
+                    deleteItem();
+                    break;
+                case 'O':
+                    openList();
+                    break;
+                case 'S':
+                    saveList();
+                    break;
+                case 'C':
+                    clearList();
+                    break;
+                case 'V':
+                    viewList();
+                    break;
+                case 'Q':
+                    quitPrompt();
+                    break;
+                default:
+                    System.out.println("Invalid choice!");
+            }
+        } while (choice != 'Q');
+    }
+
+    private static void displayMenu() {
+        System.out.println("Menu:");
+        System.out.println("A - Add an item to the list");
+        System.out.println("D - Delete an item from the list");
+        System.out.println("O - Open a list file from disk");
+        System.out.println("S - Save the current list file to disk");
+        System.out.println("C - Clear the current list");
+        System.out.println("V - View the current list");
+        System.out.println("Q - Quit the program");
+    }
+
+    private static void addItem() {
+        System.out.print("Enter item to add: ");
+        String item = in.nextLine();
+        list.add(item);
+        needsToBeSaved = true;
+    }
+
+    private static void deleteItem() {
+        if (list.isEmpty()) {
+            System.out.println("List is empty!");
+            return;
+        }
+        viewList();
+        int index = SafeInput.getRangedInt(1, list.size(), "Enter item number to delete: ") - 1;
+        list.remove(index);
+        needsToBeSaved = true;
+    }
+
+    private static void openList() {
+        if (needsToBeSaved) {
+            System.out.println("Save current list before opening a new one?");
+            if (SafeInput.getYNConfirm("Enter 'Y' to save or 'N' to discard changes: ")) {
+                saveList();
+            }
+        }
+        System.out.print("Enter the name of the list file to open: ");
+        String fileName = in.nextLine();
+        try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            list.clear();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                list.add(line);
+            }
+            currentListFileName = fileName;
+            needsToBeSaved = false;
+            System.out.println("List loaded successfully from " + fileName);
+        } catch (IOException e) {
+            System.out.println("Error opening list file: " + e.getMessage());
+        }
+    }
+
+    private static void saveList() {
+        if (list.isEmpty()) {
+            System.out.println("List is empty, nothing to save.");
+            return;
+        }
+        String fileName = currentListFileName.isEmpty() ? promptFileName("Enter a file name to save the list: ") : currentListFileName;
+        try (PrintWriter writer = new PrintWriter(new FileWriter(fileName))) {
+            for (String item : list) {
+                writer.println(item);
+            }
+            currentListFileName = fileName;
+            needsToBeSaved = false;
+            System.out.println("List saved successfully to " + fileName);
+        } catch (IOException e) {
+            System.out.println("Error saving list: " + e.getMessage());
+        }
+    }
+
+    private static void clearList() {
+        if (!list.isEmpty()) {
+            list.clear();
+            System.out.println("List cleared.");
+            needsToBeSaved = true;
+        } else {
+            System.out.println("List is already empty.");
+        }
+    }
+
+    private static void viewList() {
+        if (list.isEmpty()) {
+            System.out.println("List is empty!");
+        } else {
+            System.out.println("Current List:");
+            for (int i = 0; i < list.size(); i++) {
+                System.out.println((i + 1) + ". " + list.get(i));
+            }
+        }
+    }
+
+    private static void quitPrompt() {
+        if (needsToBeSaved) {
+            System.out.println("Save current list before quitting?");
+            if (SafeInput.getYNConfirm("Enter 'Y' to save or 'N' to quit without saving: ")) {
+                saveList();
+            }
+        }
+        System.out.println("Exiting program...");
+        System.exit(0);
+    }
+
+    private static String promptFileName(String message) {
+        System.out.print(message);
+        return in.nextLine().trim() + ".txt";
+    }
+}
